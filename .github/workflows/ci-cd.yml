@@ -1,0 +1,82 @@
+#
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2025 Alexei Eskenazi. All rights reserved
+#
+# AI-Snap utility
+#
+# Author: amesk <alexei.eskenazi@gmail.com>
+#
+
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - release/**  # Trigger on branches starting with 'release/'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Use any Python 3.x version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv
+        pipenv install --dev
+
+    - name: Build the package
+      run: |
+        pipenv run python -m build
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: package
+        path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/release/')  # Only run on branches starting with 'release/'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'  # Use any Python 3.x version
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv
+        pipenv install --dev
+
+    - name: Download artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: package
+        path: dist/
+
+    - name: Publish to PyPI
+      env:
+        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+      run: |
+        pipenv run twine upload dist/*
