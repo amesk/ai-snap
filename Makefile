@@ -18,11 +18,16 @@ all:
 	@echo Usage:
 	@echo     make build
 	@echo     make clean
+	@echo     make tag
 
 build:
 	pipenv run wheel $(AI_SNAP_VERSION)
 	pipenv run exe $(AI_SNAP_VERSION)
 	pipenv run changelog
+
+tag:
+	git tag "versions/$(AI_SNAP_VERSION)"
+	git push --tags
 
 clean:
 	pipenv run clean
