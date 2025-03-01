@@ -1,3 +1,8 @@
+dist/
+build/
 ai_snap/version.py
 .ai-snap*
 *.code-workspace
+*.egg-info
+*.spec
+
