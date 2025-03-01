@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+click = "*"
+click-completion = "*"
+pathspec = "*"
+chardet = "*"
+pyperclip = "*"
+
+[dev-packages]
+pyinstaller = "*"
+build = "*"
+gitpython = "*"
+twine = "*"
+
+[requires]
+python_version = "3"
+
+[scripts]
+exe = "python scripts/exe.py"
+wheel = "python scripts/wheel.py"
+changelog = "python scripts/generate_changelog.py"
+clean = "python scripts/clean.py"
+ai-snap = "python ai-snap.py"

@@ -1,0 +1,3 @@
+ai_snap/version.py
+.ai-snap*
+*.code-workspace
