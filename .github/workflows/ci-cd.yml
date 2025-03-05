@@ -60,13 +60,15 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
 
-      - name: Build the package
+      - name: Build the package (Windows)
+        if: matrix.os == 'windows-latest'
         run: |
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            pipenv run exe ${{ needs.set-version.outputs.ai_snap_version }}
-          else
-            pipenv run wheel ${{ needs.set-version.outputs.ai_snap_version }}
-          fi
+          pipenv run exe ${{ needs.set-version.outputs.ai_snap_version }}
+
+      - name: Build the package (Linux)
+        if: matrix.os != 'windows-latest'
+        run: |
+          pipenv run wheel ${{ needs.set-version.outputs.ai_snap_version }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
