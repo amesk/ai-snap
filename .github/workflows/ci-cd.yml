@@ -81,6 +81,8 @@ jobs:
       - set-version
       - build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: >
       github.event_name == 'workflow_dispatch' &&
       github.event.inputs.action == 'publish-and-release'
