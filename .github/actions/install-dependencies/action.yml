@@ -1,0 +1,25 @@
+name: 'Install Dependencies'
+description: 'Install Python dependencies using pipenv'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Cache Pipenv virtualenv
+      uses: actions/cache@v3
+      id: pipenv-cache
+      with:
+        path: ~/.local/share/virtualenvs/
+        key: pipenv-${{ hashFiles('Pipfile.lock') }}
+        restore-keys: |
+          pipenv-
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install pipenv
+        pipenv install --dev

@@ -56,7 +56,7 @@ def get_git_logs():
     return "".join(changelog)
 
 def write_changelog(changelog):
-    with open("dist/Changelog.txt", "w") as f:
+    with open("Changelog.txt", "w") as f:
         f.write(changelog)
 
 if __name__ == "__main__":

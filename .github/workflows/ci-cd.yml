@@ -1,23 +1,24 @@
-#
-# -*- coding: utf-8 -*-
-#
-# Copyright (C) 2025 Alexei Eskenazi. All rights reserved
-#
-# AI-Snap utility
-#
-# Author: amesk <alexei.eskenazi@gmail.com>
-#
-
 name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - master
-      - release/**  # Trigger on branches starting with 'release/'
+      - releases/**
   pull_request:
     branches:
       - master
+      - releases/**
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform (build, publish-and-release)'
+        required: true
+        default: 'build'
+        type: choice
+        options:
+          - build
+          - publish-and-release
 
 jobs:
   set-version:
@@ -25,104 +26,136 @@ jobs:
     outputs:
       ai_snap_version: ${{ steps.set-version.outputs.ai_snap_version }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set AI_SNAP_VERSION
-      id: set-version
-      run: |
-        AI_SNAP_VERSION="0.0.${{ github.run_number }}"
-        echo "AI_SNAP_VERSION=$AI_SNAP_VERSION" >> $GITHUB_ENV
-        echo "::set-output name=ai_snap_version::$AI_SNAP_VERSION"
+      - name: Set AI_SNAP_VERSION
+        id: set-version
+        run: |
+          if [[ "${{ github.ref_name }}" == releases/* ]]; then
+            VERSION_PARTS=(${GITHUB_REF_NAME#releases/})
+            IFS='.' read -r -a VERSION_PARTS <<< "${VERSION_PARTS[0]}"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            BUILD=${VERSION_PARTS[2]:-${{ github.run_number }}}
+            AI_SNAP_VERSION="$MAJOR.$MINOR.$BUILD"
+          else
+            # Используем первые 7 символов SHA коммита
+            COMMIT_ID="${GITHUB_SHA:0:7}"
+            AI_SNAP_VERSION="dev-$COMMIT_ID"
+          fi
+          echo "AI_SNAP_VERSION=$AI_SNAP_VERSION" >> $GITHUB_ENV
+          echo "::set-output name=ai_snap_version::$AI_SNAP_VERSION"
 
   build:
     needs: set-version
-    runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python 3
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'  # Use any Python 3.x version
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pipenv
-        pipenv install --dev
+      - name: Build the package
+        run: |
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            pipenv run exe ${{ needs.set-version.outputs.ai_snap_version }}
+          else
+            pipenv run wheel ${{ needs.set-version.outputs.ai_snap_version }}
+          fi
 
-    - name: Build the package
-      run: |
-        pipenv run wheel ${{ needs.set-version.outputs.ai_snap_version }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.os }}
+          path: dist/
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: package
-        path: dist/
-
-
-  build-windows:
-    needs: set-version
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pipenv
-        pipenv install --dev
-
-    - name: Generate EXE
-      run: pipenv run exe ${{ needs.set-version.outputs.ai_snap_version }}
-
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ai-snap-exe
-        path: dist/
-
-  publish:
+  publish-and-release:
     needs:
       - set-version
       - build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/release/')  # Only run on branches starting with 'release/'
-
+    if: >
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.action == 'publish-and-release'
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python 3
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'  # Use any Python 3.x version
+      - name: Install dependencies
+        uses: ./.github/actions/install-dependencies
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install pipenv
-        pipenv install --dev
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: package-ubuntu-latest
+          path: dist/
 
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: package
-        path: dist/
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          pipenv run twine upload dist/*.whl dist/*.tar.gz
 
-    - name: Publish to PyPI
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-      run: |
-        pipenv run twine upload dist/*.whl dist/*.tar.gz
+      - name: Generate Changelog
+        run: |
+          pipenv run changelog
+
+      - name: Upload Changelog as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: changelog
+          path: Changelog.txt
+
+      - name: Create tag
+        id: create-tag
+        run: |
+          if [[ "${{ github.ref_name }}" == releases/* ]]; then
+            VERSION_PARTS=(${GITHUB_REF_NAME#releases/})
+            IFS='.' read -r -a VERSION_PARTS <<< "${VERSION_PARTS[0]}"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            BUILD=${VERSION_PARTS[2]:-${{ github.run_number }}}
+            TAG_NAME="v$MAJOR.$MINOR.$BUILD"
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+            echo "::set-output name=tag_name::$TAG_NAME"
+          else
+            echo "Not a release branch, skipping tag creation"
+            exit 0
+          fi
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.create-tag.outputs.tag_name }}
+          release_name: Release ${{ steps.create-tag.outputs.tag_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Changelog to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: Changelog.txt
+          asset_name: Changelog.txt
+          asset_content_type: text/plain
+
+      - name: Upload ai-snap.exe to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ai-snap.exe
+          asset_name: ai-snap.exe
+          asset_content_type: application/octet-stream

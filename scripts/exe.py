@@ -52,4 +52,4 @@ if __name__ == "__main__":
     
     replace_version(version)
     replace_toml_version(version)
-    os.system(f"pyinstaller -F --name ai-snap-{version}.exe ai-snap.py")
+    os.system(f"pyinstaller -F --name ai-snap.exe ai-snap.py")
