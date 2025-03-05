@@ -12,7 +12,7 @@ ifeq ($(AI_SNAP_VERSION),)
     $(error AI_SNAP_VERSION environment variable is not defined, define it first!)
 endif
 
-.PHONY: build clean all
+.PHONY: build clean all tag
 
 all:
 	@echo Usage:
