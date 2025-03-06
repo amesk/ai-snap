@@ -130,7 +130,7 @@ jobs:
             MAJOR=${VERSION_PARTS[0]}
             MINOR=${VERSION_PARTS[1]}
             BUILD=${VERSION_PARTS[2]:-${{ github.run_number }}}
-            TAG_NAME="v$MAJOR.$MINOR.$BUILD"
+            TAG_NAME="versions/$MAJOR.$MINOR.$BUILD"
             git tag $TAG_NAME
             git push origin $TAG_NAME
             echo "::set-output name=tag_name::$TAG_NAME"
