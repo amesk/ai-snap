@@ -1,3 +1,15 @@
+#
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2025 Alexei Eskenazi. All rights reserved
+#
+# AI-Snap utility
+#
+# Author: amesk <alexei.eskenazi@gmail.com>
+#
+
+# Auxilary script for CI/CD pipeline that installs dependencies using pipenv
+
 name: 'Install Dependencies'
 description: 'Install Python dependencies using pipenv'
 runs:

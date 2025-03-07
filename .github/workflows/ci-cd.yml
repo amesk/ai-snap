@@ -1,3 +1,13 @@
+#
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2025 Alexei Eskenazi. All rights reserved
+#
+# AI-Snap utility
+#
+# Author: amesk <alexei.eskenazi@gmail.com>
+#
+
 name: CI/CD Pipeline
 
 on:
@@ -135,22 +145,6 @@ jobs:
           pipenv run changelog
           cat Changelog.txt
 
-#      - name: Upload Changelog as artifact
-#        uses: actions/upload-artifact@v4
-#        with:
-#          name: changelog
-#          path: Changelog.txt
-
-#      - name: Create GitHub Release
-#        uses: actions/create-release@v1.1.4
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag_name: ${{ steps.create-tag.outputs.tag_name }}
-#          release_name: Release ${{ steps.create-tag.outputs.tag_name }}
-#          draft: false
-#          prerelease: false
-
       - name: Create GitHub Release
         id: create-release
         uses: softprops/action-gh-release@v2.2.1
@@ -166,27 +160,3 @@ jobs:
             dist/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-#      - name: Show upload_url
-#        run: |
-#          echo "Upload URL: ${{ steps.create-release.outputs.upload_url }}"
-
-#      - name: Upload Changelog to Release
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create-release.outputs.upload_url }}
-#          asset_path: Changelog.txt
-#          asset_name: Changelog.txt
-#          asset_content_type: text/plain
-#
-#      - name: Upload ai-snap.exe to Release
-#        uses: actions/upload-release-asset@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          upload_url: ${{ steps.create-release.outputs.upload_url }}
-#          asset_path: ai-snap.exe
-#          asset_name: ai-snap.exe
-#          asset_content_type: application/octet-stream
