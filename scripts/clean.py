@@ -61,4 +61,5 @@ if __name__ == "__main__":
     delete_directory(Path(join(root_dir, "build")))
     delete_directory(Path(join(root_dir, "ai_snap.egg-info")))
     delete_files_by_mask(root_dir, "*.spec")
+    delete_files_by_mask(root_dir, "Changelog.txt")
 
