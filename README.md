@@ -31,18 +31,28 @@ It's possible not to utilize Python at all and download standalone AI-Snap execu
 ## Command-line help
 
 ```
-Usage: ai-snap [OPTIONS] COMMAND [ARGS]...
+Usage: ai_snap [OPTIONS] COMMAND [ARGS]...
 
   Save project structure and file contents, considering rules from the config
   file.
 
 Options:
-  --version           Show the version and exit.
-  --instruct PATH     Path to the instruction file to include at the beginning
-  --config-file PATH  Path to the config file (e.g., .gitignore-like file with whitelist and exclusions)
-  --help              Show this message and exit.
+  --version                   Show the version and exit.
+  -i, --include TEXT          Additional patterns to include in the snapshot
+  -x, --exclude TEXT          Additional patterns to exclude from the snapshot
+  -I, --instruct PATH         Path to the instruction file to include at the
+                              beginning
+  -f, --instruct-footer PATH  Path to the footer instruction file that follows
+                              the file contents
+  -c, --config-file PATH      Path to the config file (e.g., .gitignore-like
+                              file containing patterns)
+  -r, --read-instruct         Read multiline instruction lines from the
+                              command line
+  -p, --clipboard             Copy the output to the clipboard
+  -o, --output PATH           Output file path (default: stdout)
+  --help                      Show this message and exit.
 
-  See more at https://github.com/ai-snap/ai-snap
+  See more at https://github.com/amesk/ai-snap
 ```
 
 By default, AI-Snap will scan all files and directories in the current folder and produce an output file called project_contents.txt.

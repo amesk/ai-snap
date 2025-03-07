@@ -19,7 +19,7 @@ from pathspec import PathSpec
 from pathspec.patterns import GitWildMatchPattern
 from pathlib import Path
 
-from typing import Optional, Any
+from typing import Any, List, Optional, Tuple
 
 # Try to retrieve application version from generate version.py file
 try:
@@ -27,9 +27,9 @@ try:
 except:
     VERSION = "0.0.1"
 
-def read_config_file(file_path:str) -> Optional[PathSpec]:
+def read_config_file(file_path:str) -> Optional[List[str]]:
     """
-    Read a configuration file (e.g., .gitignore) and return a PathSpec object.
+    Read a configuration file (e.g., .gitignore-styled) and return a list of patterns
     """
     spec = []
     try:
@@ -38,8 +38,8 @@ def read_config_file(file_path:str) -> Optional[PathSpec]:
     except FileNotFoundError:
             click.echo(click.style(f"Config file not found: {file_path}", fg="red"), err=True)
             sys.exit(1)
-    spec += [ '!.ai-snap', '!ai-snap-instruct']
-    return PathSpec.from_lines(GitWildMatchPattern, spec)
+            
+    return spec
 
 
 def get_language_from_extension(file_name:str) -> str:
@@ -131,30 +131,36 @@ def make_project_snapshot(root_path:str, config_spec:Optional[PathSpec], instruc
     output += "\n".join(file_contents)
 
     if footer:
-        output += "\n\n" + footer
+        output += "\n" + footer
 
     return output
 
 
 CLI_HELP_EPILOG = """
 \b
-See more at https://github.com/ai-snap/ai-snap
+See more at https://github.com/amesk/ai-snap
 """
 
 @click.group(name="ai-snap", invoke_without_command=True, epilog=CLI_HELP_EPILOG)
 @click.version_option(VERSION, prog_name="ai-snap")
-@click.option("--instruct", type=click.Path(exists=True),
+@click.option("-i", "--include", multiple=True,
+              help="Additional patterns to include in the snapshot")
+@click.option("-x", "--exclude", multiple=True,
+              help="Additional patterns to exclude from the snapshot")
+@click.option("-I", "--instruct", type=click.Path(exists=True),
               help="Path to the instruction file to include at the beginning")
-@click.option("--instruct-footer", "instruct_footer", type=click.Path(exists=True),
+@click.option("-f", "--instruct-footer", "instruct_footer", type=click.Path(exists=True),
               help="Path to the footer instruction file that follows the file contents")
 @click.option("-c", "--config-file", type=click.Path(exists=True),
               help="Path to the config file (e.g., .gitignore-like file containing patterns)")
+@click.option("-r", "--read-instruct", is_flag=True,
+              help="Read multiline instruction lines from the command line")
 @click.option("-p", "--clipboard", is_flag=True,
               help="Copy the output to the clipboard")
 @click.option("-o", "--output", type=click.Path(exists=False), default="-",
                 help="Output file path (default: stdout)")
-
-def cli(instruct:str, instruct_footer:str, config_file:str, output:str, clipboard:bool) -> None:
+def cli(include:Optional[Tuple[str]], exclude:Optional[Tuple[str]], instruct:str, instruct_footer:str,
+        config_file:str, output:str, read_instruct:bool, clipboard:bool) -> None:
     """
     Save project structure and file contents, considering rules from the config file.
     """
@@ -167,19 +173,33 @@ def cli(instruct:str, instruct_footer:str, config_file:str, output:str, clipboar
     default_instruct_file = '.ai-snap-instructions'
     default_instruct_footer_file = '.ai-snap-instructions-footer'
 
-    # Используем указанный config-file или default_ignore_file, если он существует
     if config_file:
-        config_spec = read_config_file(config_file)
+        patterns = read_config_file(config_file)
     elif os.path.exists(default_config_file):
-        config_spec = read_config_file(default_config_file)
+        patterns = read_config_file(default_config_file)
     else:
-        config_spec = None
+        patterns = []
+    
+    # Add additional patterns from the command line
+    patterns += include
+    
+    # Add additional exclude patterns from the command line
+    patterns += [f"!{x}" for x in exclude]
+    
+    # Never include ai-snap files and instructions files in the snapshot, also don't honor .git*
+    patterns += ['!*.ai-snap', '!*.ai-snap-instructions', '!*.ai-snap-instructions-footer', '!.git*']
+    config_spec = PathSpec.from_lines(GitWildMatchPattern, patterns)
 
     instructions_text = None
 
-    if not instruct and os.path.exists(default_instruct_file):
+    if read_instruct:
+        # Read multiline instructions from the command line
+        click.echo("Enter your instructions (press {} to finish):".format(
+            "Ctrl+Z" if sys.platform == "win32" else "Ctrl+D"))
+        instructions_text = sys.stdin.read()
+    elif not instruct and os.path.exists(default_instruct_file):
         instruct = default_instruct_file
-        
+
     if instruct:
         instructions_text = read_file_with_autoencoding(instruct)
 
