@@ -10,6 +10,10 @@ It's designed for quick documentation of your project's file system before creat
  - Customizable Filters: Offers whitelist option for targeted scanning, Git .gitignore / rsync pathspec supported.
  - Command-Line Interface: Simple and easy-to-use command-line tool.
 
+# License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
 # Installation
 
 ## Install AI-Snap with pip:
