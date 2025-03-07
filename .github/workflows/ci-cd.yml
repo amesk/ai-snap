@@ -37,7 +37,7 @@ jobs:
       ai_snap_version: ${{ steps.set-version.outputs.ai_snap_version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set AI_SNAP_VERSION
         id: set-version
@@ -64,7 +64,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
@@ -97,7 +97,9 @@ jobs:
       github.event.inputs.action == 'publish-and-release'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        
 
       - name: Install dependencies
         uses: ./.github/actions/install-dependencies
@@ -141,7 +143,6 @@ jobs:
 
       - name: Generate Changelog
         run: |
-          git pull --tags
           pipenv run changelog
           cat Changelog.txt
 
